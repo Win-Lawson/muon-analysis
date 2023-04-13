@@ -29,26 +29,21 @@ for index, row in data.iterrows():
         down_list.append(row.min())
 
 n_bins = 20
-n_up, bin_edges = np.histogram(up_list, n_bins)  # Make a histogram
-n_down, bin_edges = np.histogram(down_list, n_bins)
+n_up, bin_edges1 = np.histogram(up_list, n_bins)  # Make a histogram
+n_down, bin_edges2 = np.histogram(down_list, n_bins)
 
 up_minus_down = n_up - n_down
 
 
-def damped_sine(x, b, c, d, e):
-    return b * np.exp(-x/c) * np.sin(d * x + e)
+def damped_sine(x, b, c, d, e, f):
+    return b * np.exp(-x / c) + f * np.sin(d * x + e)
 
 
-bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
+bin_centers = 0.5 * (bin_edges1[1:] + bin_edges1[:-1])
 bin_centers *= (8 / 4096)
-popt, pcov = curve_fit(damped_sine, bin_centers, up_minus_down)
 errs = np.sqrt(n_down ^ 2 + n_up ^ 2)
-
-"""
-plt.hist(up_minus_down, n_bins, density=True, alpha=0.5)
-plt.plot(bin_centers,damped_sine((bin_centers, *popt), 'r-', label='fit'))
-plt.legend()
-plt.show()"""
+initial_parameters = np.array([120,4,3,-4,20])
+popt, pcov = curve_fit(damped_sine, bin_centers, up_minus_down, sigma=errs, p0=initial_parameters)
 
 fig, ax = plt.subplots(figsize=[10, 7])
 ax.errorbar(bin_centers, up_minus_down, errs, fmt='o', markersize=3.0, capsize=1.0, label='Data')
@@ -56,5 +51,18 @@ ax.set_title('Up counts - down counts vs time')
 ax.set_xlabel('Time ($\mu$s)')
 ax.set_ylabel('Up counts - down counts')
 ax.plot(bin_centers, damped_sine(bin_centers, *popt), 'r-', label='fit')
+print(*popt)
+plt.show()
 
+# up only
+errs = np.sqrt(n_up)
+popt_up_only, pcov_up_only = curve_fit(damped_sine, bin_centers, n_up, sigma=errs)
+
+fig, ax = plt.subplots(figsize=[10, 7])
+ax.errorbar(bin_centers, up_minus_down, errs, fmt='o', markersize=3.0, capsize=1.0, label='Data')
+ax.set_title('Up counts vs time')
+ax.set_xlabel('Time ($\mu$s)')
+ax.set_ylabel('Up counts - down counts')
+ax.plot(bin_centers, damped_sine(bin_centers, *popt), 'r-', label='fit')
+print(*popt)
 plt.show()
