@@ -39,11 +39,15 @@ def damped_sine(t, a, tau, omega, phi, b):
     return a * np.exp(-t / tau) + b * np.sin(omega * t + phi)
 
 
+def prof_fn(t, a, tau, omega, phi, b):
+    return a * np.exp(-t / tau) * (1 + b * np.sin(omega * t + phi))
+
+
 bin_centers = 0.5 * (bin_edges1[1:] + bin_edges1[:-1])
 bin_centers *= (8 / 4096)
 errs = np.sqrt(n_down ^ 2 + n_up ^ 2)
 initial_parameters = np.array([120, 4, 3, -4, 20])
-popt, pcov = curve_fit(damped_sine, bin_centers, up_minus_down, sigma=errs, p0=initial_parameters)
+popt, pcov = curve_fit(prof_fn, bin_centers, up_minus_down, sigma=errs, p0=initial_parameters)
 
 fig, ax = plt.subplots(figsize=[10, 7])
 ax.errorbar(bin_centers, up_minus_down, errs, fmt='o', markersize=3.0, capsize=1.0)
@@ -51,9 +55,19 @@ ax.set_title('Up counts - down counts vs time')
 ax.set_xlabel('Time ($\mu$s)')
 ax.set_ylabel('Up counts - down counts')
 smooth = np.linspace(bin_centers[0], bin_centers[-1], 100)
-ax.plot(smooth, damped_sine(smooth, *popt), 'r-', label='$Ae^{-t/\\tau}+B\sin{(\omega t+\phi)}$')
+ax.plot(smooth, prof_fn(smooth, *popt), 'r-', label='$Ae^{-t/\\tau}(1+B\sin{(\omega t+\phi)}$)')
 plt.legend(fontsize=20)
 plt.show()
-print(popt)
-for x in range(1,5):
-    print(pcov[x][x])
+
+w = popt[2] * 1e6
+w_err = np.sqrt(pcov[2][2] * 1e6)
+e = 1.602176634e-19
+B = 4.93e-3
+B_err = (.1 + .996) * 1e-3
+m_muon = 1.883531627e-28
+
+g_2 = 2 * m_muon * w / (e * B)
+g_2_err = (2 * m_muon / (e * B)) * np.sqrt(w_err ** 2 + (w * B_err / B) ** 2)
+
+print('w = ' + str(w) + ' +/- ' + str(w_err))
+print('g minus 2 = ' + str(g_2) + ' +/- ' + str(g_2_err))
