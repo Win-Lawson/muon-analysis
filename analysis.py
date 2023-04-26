@@ -35,34 +35,25 @@ n_down, bin_edges2 = np.histogram(down_list, n_bins)
 up_minus_down = n_up - n_down
 
 
-def damped_sine(x, b, c, d, e, f):
-    return b * np.exp(-x / c) + f * np.sin(d * x + e)
+def damped_sine(t, a, tau, omega, phi, b):
+    return a * np.exp(-t / tau) + b * np.sin(omega * t + phi)
 
 
 bin_centers = 0.5 * (bin_edges1[1:] + bin_edges1[:-1])
 bin_centers *= (8 / 4096)
 errs = np.sqrt(n_down ^ 2 + n_up ^ 2)
-initial_parameters = np.array([120,4,3,-4,20])
+initial_parameters = np.array([120, 4, 3, -4, 20])
 popt, pcov = curve_fit(damped_sine, bin_centers, up_minus_down, sigma=errs, p0=initial_parameters)
 
 fig, ax = plt.subplots(figsize=[10, 7])
-ax.errorbar(bin_centers, up_minus_down, errs, fmt='o', markersize=3.0, capsize=1.0, label='Data')
+ax.errorbar(bin_centers, up_minus_down, errs, fmt='o', markersize=3.0, capsize=1.0)
 ax.set_title('Up counts - down counts vs time')
 ax.set_xlabel('Time ($\mu$s)')
 ax.set_ylabel('Up counts - down counts')
-ax.plot(bin_centers, damped_sine(bin_centers, *popt), 'r-', label='fit')
-print(*popt)
+smooth = np.linspace(bin_centers[0], bin_centers[-1], 100)
+ax.plot(smooth, damped_sine(smooth, *popt), 'r-', label='$Ae^{-t/\\tau}+B\sin{(\omega t+\phi)}$')
+plt.legend(fontsize=20)
 plt.show()
-
-# up only
-errs = np.sqrt(n_up)
-popt_up_only, pcov_up_only = curve_fit(damped_sine, bin_centers, n_up, sigma=errs)
-
-fig, ax = plt.subplots(figsize=[10, 7])
-ax.errorbar(bin_centers, up_minus_down, errs, fmt='o', markersize=3.0, capsize=1.0, label='Data')
-ax.set_title('Up counts vs time')
-ax.set_xlabel('Time ($\mu$s)')
-ax.set_ylabel('Up counts - down counts')
-ax.plot(bin_centers, damped_sine(bin_centers, *popt), 'r-', label='fit')
-print(*popt)
-plt.show()
+print(popt)
+for x in range(1,5):
+    print(pcov[x][x])
